@@ -3,11 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Diet Log</title>
+<title>NutriMate</title>
+<meta name="description" content="NutriMate: track diets day by day, tick off meals, and scan products for calories, sugar and protein.">
+<meta name="theme-color" content="#f3f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121714" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="NutriMate">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icons/logo.svg">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: one column log. Diet header on top, days as dated ledger cards below, newest first. */
+/* Layout: header (logo + NutriMate) above a sticky app bar (Home, Profile, About); one-column content below. */
 :root {
   --bg: #f3f5f1;
   --surface: #ffffff;
@@ -17,11 +27,21 @@
   --line: #d5ddd4;
   --accent: #2c6e4f;
   --accent-ink: #ffffff;
+  --brand: #1f9d55;
+  --logo-ink: #0f1411;
   --meal: #2c6e4f;
   --snack: #b4651c;
   --drink: #2f6697;
   --danger: #b3261e;
   --over: #c2410c;
+  --good: #23784a;
+  --warn: #a15c07;
+  --bad: #b3261e;
+  --skin: #f0c6a0;
+  --hair: #3b2a20;
+  --face: #1d1b1a;
+  --pants: #34433b;
+  --cheek: #f19a8f;
   --font-display: "Familjen Grotesk", "Segoe UI", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
   --font-num: "JetBrains Mono", ui-monospace, Menlo, monospace;
@@ -30,54 +50,76 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #121714; --surface: #1a211d; --surface-2: #232c26; --ink: #e6ece7; --muted: #9aa89f;
-    --line: #2f3a33; --accent: #6cc39a; --accent-ink: #0e1a13; --meal: #6cc39a; --snack: #e3a15e;
-    --drink: #7fb2e3; --danger: #f2877f; --over: #f59e62; color-scheme: dark;
+    --line: #2f3a33; --accent: #6cc39a; --accent-ink: #0e1a13; --brand: #3fca7c; --logo-ink: #000000;
+    --meal: #6cc39a; --snack: #e3a15e; --drink: #7fb2e3; --danger: #f2877f; --over: #f59e62;
+    --good: #6cc39a; --warn: #e8b04f; --bad: #f2877f; --pants: #56675d; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #121714; --surface: #1a211d; --surface-2: #232c26; --ink: #e6ece7; --muted: #9aa89f;
-  --line: #2f3a33; --accent: #6cc39a; --accent-ink: #0e1a13; --meal: #6cc39a; --snack: #e3a15e;
-  --drink: #7fb2e3; --danger: #f2877f; --over: #f59e62; color-scheme: dark;
+  --line: #2f3a33; --accent: #6cc39a; --accent-ink: #0e1a13; --brand: #3fca7c; --logo-ink: #000000;
+  --meal: #6cc39a; --snack: #e3a15e; --drink: #7fb2e3; --danger: #f2877f; --over: #f59e62;
+  --good: #6cc39a; --warn: #e8b04f; --bad: #f2877f; --pants: #56675d; color-scheme: dark;
 }
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 [hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
-.wrap { max-width: 860px; margin: 0 auto; padding-block: 20px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 20px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 16px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 16px; }
 h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; line-height: 1.15; }
 .num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
 .label { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; }
 button, input, textarea, select { font: inherit; color: inherit; }
-button { cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; }
+button { cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); padding: 8px 12px; min-height: 40px; touch-action: manipulation; }
 button:hover { border-color: var(--muted); }
-button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
 .primary:hover { filter: brightness(1.08); border-color: var(--accent); }
-.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 5px 8px; }
+.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 6px 10px; }
 .ghost:hover { color: var(--ink); border-color: var(--line); }
-.ghost[aria-pressed="true"] { color: var(--ink); border-color: var(--line); background: var(--surface); }
 .danger { color: var(--danger); }
 .danger.armed { background: var(--danger); color: var(--surface); border-color: var(--danger); }
-input, textarea, select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
-textarea { resize: vertical; min-height: 64px; }
+/* 16px stops iPhone Safari from zooming in when a field is tapped */
+input, textarea, select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; width: 100%; min-width: 0; font-size: 16px; min-height: 42px; }
+textarea { resize: vertical; min-height: 72px; }
 
-/* Top bar */
-.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
-.brand { display: flex; align-items: baseline; gap: 10px; }
-.brand h1 { font-size: 26px; letter-spacing: -.01em; }
-.sync { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
-.sync::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--snack); }
+/* Header and logo */
+.top { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.logo { display: inline-flex; align-items: center; gap: 5px; background: var(--logo-ink); color: #ffffff; border-radius: 999px; padding: 4px 10px 4px 4px; flex: none; }
+.logo svg { width: 24px; height: 24px; display: block; }
+.logo span { font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .02em; }
+.brand h1 { font-size: 26px; letter-spacing: -.01em; white-space: nowrap; }
+.brand h1 b { color: var(--brand); font-weight: inherit; }
+.top-right { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sync { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sync::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--snack); flex: none; }
 .sync.cloud::before { background: var(--accent); }
-.picker { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.picker select { width: auto; max-width: 240px; }
 
-/* Diet panel */
-.diet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 16px; }
+/* App bar */
+.appbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 6px 16px -12px rgba(0,0,0,.4); }
+.tab { display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; background: transparent; color: var(--muted); font-weight: 700; border-radius: 9px; min-height: 44px; padding: 6px 8px; }
+.tab svg { width: 20px; height: 20px; flex: none; }
+.tab[aria-current="page"] { background: var(--accent); color: var(--accent-ink); }
+.tab:hover:not([aria-current="page"]) { color: var(--ink); background: var(--surface-2); }
+
+/* Home toolbar */
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.toolbar select { width: auto; flex: 1 1 200px; max-width: 320px; }
+.scan-btn { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; border: 2px solid var(--accent); color: var(--accent); background: var(--surface); }
+.scan-btn svg { width: 22px; height: 22px; }
+.scan-btn:hover { border-color: var(--accent); background: var(--surface-2); }
+
+/* Panels */
+.diet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 16px; min-width: 0; }
 .diet-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between; }
-.diet-name { font-family: var(--font-display); font-size: 24px; font-weight: 700; border: 1px solid transparent; background: transparent; padding: 2px 6px; margin-left: -7px; flex: 1 1 260px; }
+.diet-name { font-family: var(--font-display); font-size: 24px; font-weight: 700; border: 1px solid transparent; background: transparent; padding: 2px 6px; margin-left: -7px; flex: 1 1 220px; }
 .diet-name:hover, .diet-name:focus { border-color: var(--line); background: var(--surface); }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.stat { display: grid; gap: 2px; }
+.stat { display: grid; gap: 2px; min-width: 0; }
 .stat .v { font-family: var(--font-num); font-size: 20px; font-variant-numeric: tabular-nums; }
 .stat .v small { font-size: 12px; color: var(--muted); }
 .field { display: grid; gap: 6px; min-width: 0; }
@@ -112,32 +154,91 @@ textarea { resize: vertical; min-height: 64px; }
 .t-meal { --c: var(--meal); } .t-snack { --c: var(--snack); } .t-drink { --c: var(--drink); }
 .dot { background: var(--c); }
 .items { list-style: none; margin: 0; padding: 0; display: grid; }
-.item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: start; padding: 8px 0 8px 12px; border-left: 3px solid var(--c); border-bottom: 1px solid var(--line); }
+.item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: start; padding: 6px 0 6px 6px; border-left: 3px solid var(--c); border-bottom: 1px solid var(--line); }
 .item:last-child { border-bottom: 0; }
 .item .name { font-weight: 700; overflow-wrap: anywhere; }
 .item .desc { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; white-space: pre-wrap; }
-.item .kcal { font-family: var(--font-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.item .kcal { font-family: var(--font-num); font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: 9px; }
 .item .acts { display: flex; gap: 2px; }
+.item .acts button { min-height: 38px; }
+.item .body { padding-top: 8px; min-width: 0; }
+.item.done .name, .item.done .desc, .item.done .kcal { opacity: .6; }
+.taken { font-size: 11px; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: .06em; margin-left: 6px; }
+/* checkbox: 44px tap area, box drawn in the group's color */
+.check { width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer; flex: none; margin: -2px -6px -2px -4px; }
+.check input { appearance: none; -webkit-appearance: none; width: 24px; height: 24px; min-height: 0; padding: 0; margin: 0; border: 2px solid var(--c); border-radius: 7px; background: var(--surface); display: grid; place-items: center; cursor: pointer; }
+.check input::after { content: ""; width: 6px; height: 12px; border: solid var(--surface); border-width: 0 3px 3px 0; transform: rotate(45deg) translate(-1px, -1px); opacity: 0; }
+.check input:checked { background: var(--c); }
+.check input:checked::after { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .check input { transition: background .15s ease; } }
 .empty-g { color: var(--muted); font-size: 14px; padding-left: 12px; }
 .adder { background: var(--surface-2); border-radius: 8px; padding: 12px; display: grid; gap: 10px; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: max-content; background: var(--surface); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: max-content; max-width: 100%; background: var(--surface); }
 .seg button { border: 0; border-radius: 0; padding: 6px 14px; background: transparent; }
 .seg button[aria-pressed="true"] { background: var(--c); color: var(--surface); font-weight: 700; }
 .adder-grid { display: grid; grid-template-columns: minmax(0, 1fr) 120px auto; gap: 8px; align-items: end; }
 .edit-form { display: grid; gap: 8px; padding: 8px 0 8px 12px; border-left: 3px solid var(--c); }
-.day-foot { display: flex; justify-content: flex-end; }
+.day-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.progress-txt { font-size: 13px; color: var(--muted); }
 
-/* Empty state */
+/* Empty state / auth */
 .welcome { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r); padding: 28px 20px; display: grid; gap: 14px; justify-items: start; }
 .welcome h2 { font-size: 22px; }
 .welcome p { margin: 0; color: var(--muted); max-width: 60ch; }
 .welcome .btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .note-saved { font-size: 12px; color: var(--muted); min-height: 1em; }
-.auth { max-width: 380px; margin: 40px auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 24px; display: grid; gap: 14px; }
+.auth { width: 100%; max-width: 380px; margin: 24px auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 24px; display: grid; gap: 14px; }
 .auth h2 { font-size: 22px; }
 .auth p { margin: 0; color: var(--muted); }
 .auth .ok { color: var(--accent); }
-.linkish { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; }
+.linkish { background: none; border: 0; padding: 0; min-height: 0; color: var(--accent); text-decoration: underline; }
+
+/* Profile */
+.avatars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.avatar-card { background: var(--surface-2); border-radius: var(--r); padding: 12px; display: grid; justify-items: center; gap: 4px; text-align: center; }
+.avatar-card svg { width: 100%; max-width: 150px; height: auto; }
+.avatar-card .band { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.band-pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--surface); }
+
+/* About */
+.about p, .about li { max-width: 65ch; }
+.about p { margin: 0; }
+.about ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.about a { color: var(--accent); }
+
+/* Scan sheet */
+.sheet { position: fixed; inset: 0; z-index: 50; background: rgba(8, 12, 10, .55); display: grid; align-items: end; justify-items: center; }
+.sheet-card { background: var(--bg); width: 100%; max-width: 560px; max-height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: 16px 16px 0 0; padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 14px; }
+.sheet-card { padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
+@media (min-width: 640px) { .sheet { align-items: center; padding: 24px; } .sheet-card { border-radius: 16px; max-height: calc(100% - 48px); padding-top: 16px; } }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sheet-head h2 { font-size: 20px; display: flex; align-items: center; gap: 8px; }
+.sheet-head h2 svg { width: 24px; height: 24px; color: var(--accent); }
+.scan-options { display: grid; gap: 10px; }
+.scan-options > button, .scan-options > label.btnlike { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; min-height: 56px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; cursor: pointer; }
+.scan-options svg { width: 26px; height: 26px; color: var(--accent); flex: none; }
+.scan-options b { display: block; }
+.scan-options small { color: var(--muted); font-size: 13px; }
+.or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+.or::before, .or::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+.inline-form { display: flex; gap: 8px; }
+.inline-form input { flex: 1; }
+#scanReader { width: 100%; border-radius: 10px; overflow: hidden; background: #000; min-height: 220px; }
+#scanReader video { width: 100% !important; height: auto !important; display: block; }
+.product { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 12px; }
+.product h3 { font-size: 18px; overflow-wrap: anywhere; }
+.nutri { width: 100%; border-collapse: collapse; font-size: 14px; }
+.nutri th, .nutri td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: right; }
+.nutri th:first-child, .nutri td:first-child { text-align: left; }
+.nutri td { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.nutri thead th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.feedback { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.feedback li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; font-size: 14px; }
+.feedback i { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; }
+.lvl-good i { background: var(--good); } .lvl-ok i { background: var(--warn); } .lvl-bad i { background: var(--bad); }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-weight: 700; z-index: 60; max-width: calc(100% - 32px); text-align: center; }
 
 @media (max-width: 620px) {
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -146,7 +247,19 @@ textarea { resize: vertical; min-height: 64px; }
   .adder-grid .add-btn { grid-column: 1 / -1; }
   .day-bar { grid-template-columns: auto minmax(0, 1fr); }
   .day-total { grid-column: 2; text-align: left; }
-  .picker select { max-width: 100%; flex: 1 1 160px; }
+  .toolbar select { max-width: none; flex-basis: 100%; }
+  .toolbar button { flex: 1 1 0; justify-content: center; }
+  .item { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .item .acts { grid-column: 2 / -1; justify-content: flex-end; margin-top: -6px; }
+  .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 380px) {
+  .brand h1 { font-size: 22px; }
+  .logo span { display: none; }
+  .logo { padding: 4px; }
+  .sync { max-width: 92px; }
+  .tab span { font-size: 14px; }
+  .wrap { padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
 }
 @media (prefers-reduced-motion: no-preference) {
   .meter i { transition: width .3s ease; }
@@ -156,19 +269,27 @@ textarea { resize: vertical; min-height: 64px; }
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="brand"><h1>Diet Log</h1><span id="sync" class="sync">Not signed in</span></div>
-    <div class="picker" id="picker" hidden>
-      <label class="label" for="dietSelect">Diet</label>
-      <select id="dietSelect"></select>
-      <button id="newDiet" class="primary">New diet</button>
-      <button id="profileBtn" class="ghost">Profile</button>
-      <button id="signOut" class="ghost">Sign out</button>
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1f9d55"/><path d="M6.5 12.5l3.6 3.6 7.4-8" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>health</span>
+      </span>
+      <h1>Nutri<b>Mate</b></h1>
+    </div>
+    <div class="top-right">
+      <span id="sync" class="sync">Not signed in</span>
+      <button id="signOut" class="ghost" hidden>Sign out</button>
     </div>
   </header>
+  <nav class="appbar" id="appbar" aria-label="Sections" hidden>
+    <button class="tab" data-view="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Home</span></button>
+    <button class="tab" data-view="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Profile</span></button>
+    <button class="tab" data-view="about"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.01"/></svg><span>About</span></button>
+  </nav>
   <form class="auth" id="authForm" hidden>
     <h2 id="authTitle">Sign in</h2>
     <p>Your diets are saved to your account and show up on every device you sign in on.</p>
-    <div class="field"><label class="label" for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required></div>
+    <div class="field"><label class="label" for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" autocapitalize="off" required></div>
     <div class="field"><label class="label" for="authPass">Password</label><input id="authPass" type="password" autocomplete="current-password" minlength="6" required></div>
     <div id="authMsg" class="msg" hidden></div>
     <button class="primary" type="submit" id="authSubmit">Sign in</button>
@@ -176,6 +297,9 @@ textarea { resize: vertical; min-height: 64px; }
   </form>
   <main id="main" hidden></main>
 </div>
+<div id="sheet" class="sheet" hidden></div>
+<div id="scanFileTmp" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
 
 <script src="config.js"></script>
 <script src="vendor/supabase-2.45.4.js"></script>
@@ -184,11 +308,13 @@ textarea { resize: vertical; min-height: 64px; }
   const KEY = "dietlog.v1";
   const TYPES = { meal: "Meals", snack: "Snacks", drink: "Drinks" };
   const SINGULAR = { meal: "meal", snack: "snack", drink: "drink" };
+  const SCAN_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M3 12h18" stroke="var(--brand)"/></svg>`;
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
   const $ = (s, el = document) => el.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
   const fmt = n => Math.round(n).toLocaleString();
+  const fmt1 = n => (Math.round(n * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
 
   // ---- state ----
   let diets = {};          // id -> diet
@@ -197,7 +323,7 @@ textarea { resize: vertical; min-height: 64px; }
   let addType = {};        // dayId -> type
   let editing = null;      // item id being edited
   let armed = null;        // key of a delete button waiting for confirmation
-  let view = "diets";      // "diets" or "profile"
+  let view = "home";       // "home", "profile" or "about"
   let profile = {};        // weight_kg, target_weight_kg, height_cm
   let userEmail = "";
   const cfg = window.DIETLOG_CONFIG || {};
@@ -228,12 +354,14 @@ textarea { resize: vertical; min-height: 64px; }
       : await sb.from("diets").delete().eq("id", id);
     if (error) { failed.add(id); setSync("Not saved. Check your connection; it retries on your next change.", false); return; }
     failed.delete(id);
-    if (!Object.keys(timers).length && !failed.size) setSync("Saved to your account", true);
+    if (!Object.keys(timers).length && !failed.size) setSync("Saved", true);
   }
   document.addEventListener("visibilitychange", () => { if (document.hidden) Object.keys(timers).forEach(flush); });
   window.addEventListener("beforeunload", e => { if (Object.keys(timers).length) { Object.keys(timers).forEach(flush); e.preventDefault(); } });
 
-  function setSync(text, cloud) { const s = $("#sync"); s.textContent = text; s.classList.toggle("cloud", !!cloud); }
+  function setSync(text, cloud) { const s = $("#sync"); s.textContent = text; s.title = text; s.classList.toggle("cloud", !!cloud); }
+  let toastTimer;
+  function toast(text) { const t = $("#toast"); t.textContent = text; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2600); }
 
   async function loadDiets() {
     setSync("Loading…", true);
@@ -244,7 +372,7 @@ textarea { resize: vertical; min-height: 64px; }
     const pr = await sb.from("profiles").select("weight_kg, target_weight_kg, height_cm").maybeSingle();
     profile = pr.data || {};
     currentId = loadCurrent();
-    setSync("Saved to your account", true);
+    setSync("Saved", true);
     render();
   }
 
@@ -253,8 +381,9 @@ textarea { resize: vertical; min-height: 64px; }
   function showAuth(on) {
     $("#authForm").hidden = !on;
     $("#main").hidden = on;
-    $("#picker").hidden = on;
-    if (on) setSync("Not signed in", false);
+    $("#appbar").hidden = on;
+    $("#signOut").hidden = on;
+    if (on) { setSync("Not signed in", false); closeSheet(); }
   }
   function setAuthMode(up) {
     signUpMode = up;
@@ -279,7 +408,7 @@ textarea { resize: vertical; min-height: 64px; }
     if (id === userId) return;
     userId = id;
     userEmail = session?.user?.email || "";
-    view = "diets";
+    view = "home";
     if (!userId) { diets = {}; profile = {}; currentId = null; showAuth(true); return; }
     showAuth(false);
     await loadDiets();
@@ -290,6 +419,7 @@ textarea { resize: vertical; min-height: 64px; }
   const dayTotal = day => day.items.reduce((s, i) => s + (Number(i.kcal) || 0), 0);
   const typeTotal = (day, t) => day.items.filter(i => i.type === t).reduce((s, i) => s + (Number(i.kcal) || 0), 0);
   function sortedDays(diet) { return [...diet.days].sort((a, b) => b.date.localeCompare(a.date)); }
+  function sortedDietIds() { return Object.keys(diets).sort((a, b) => (diets[b].createdAt || 0) - (diets[a].createdAt || 0)); }
   function newDiet(name) {
     const id = uid();
     diets[id] = { name: name || "New diet", target: null, note: "", days: [], createdAt: Date.now(), updatedAt: Date.now() };
@@ -305,17 +435,17 @@ textarea { resize: vertical; min-height: 64px; }
     const iso = off => { const x = new Date(t); x.setDate(x.getDate() - off); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); };
     d.days = [
       { id: uid(), date: iso(0), note: "Felt hungry in the afternoon. Drink more water.", items: [
-        { id: uid(), type: "meal", name: "Oats with banana", desc: "60 g oats, 1 banana, 200 ml milk", kcal: 420 },
-        { id: uid(), type: "meal", name: "Chicken rice bowl", desc: "150 g grilled chicken, 1 cup rice, salad", kcal: 610 },
-        { id: uid(), type: "snack", name: "Greek yogurt", desc: "", kcal: 120 },
-        { id: uid(), type: "drink", name: "Black coffee", desc: "", kcal: 5 },
-        { id: uid(), type: "meal", name: "Lentil soup", desc: "Large bowl with bread", kcal: 480 } ] },
+        { id: uid(), type: "meal", name: "Oats with banana", desc: "60 g oats, 1 banana, 200 ml milk", kcal: 420, done: true },
+        { id: uid(), type: "meal", name: "Chicken rice bowl", desc: "150 g grilled chicken, 1 cup rice, salad", kcal: 610, done: true },
+        { id: uid(), type: "snack", name: "Greek yogurt", desc: "", kcal: 120, done: false },
+        { id: uid(), type: "drink", name: "Black coffee", desc: "", kcal: 5, done: true },
+        { id: uid(), type: "meal", name: "Lentil soup", desc: "Large bowl with bread", kcal: 480, done: false } ] },
       { id: uid(), date: iso(1), note: "Went over because of the dessert at dinner.", items: [
-        { id: uid(), type: "meal", name: "Eggs and toast", desc: "2 eggs, 2 slices whole wheat toast", kcal: 390 },
-        { id: uid(), type: "meal", name: "Koshari", desc: "Medium plate", kcal: 750 },
-        { id: uid(), type: "snack", name: "Basbousa", desc: "", kcal: 410 },
-        { id: uid(), type: "drink", name: "Orange juice", desc: "", kcal: 110 },
-        { id: uid(), type: "meal", name: "Tuna salad", desc: "", kcal: 350 } ] }
+        { id: uid(), type: "meal", name: "Eggs and toast", desc: "2 eggs, 2 slices whole wheat toast", kcal: 390, done: true },
+        { id: uid(), type: "meal", name: "Koshari", desc: "Medium plate", kcal: 750, done: true },
+        { id: uid(), type: "snack", name: "Basbousa", desc: "", kcal: 410, done: true },
+        { id: uid(), type: "drink", name: "Orange juice", desc: "", kcal: 110, done: true },
+        { id: uid(), type: "meal", name: "Tuna salad", desc: "", kcal: 350, done: true } ] }
     ];
     openDays.add(d.days[0].id);
     return id;
@@ -324,43 +454,55 @@ textarea { resize: vertical; min-height: 64px; }
   // ---- render ----
   function renderPicker() {
     const sel = $("#dietSelect");
-    const ids = Object.keys(diets).sort((a, b) => (diets[b].createdAt || 0) - (diets[a].createdAt || 0));
-    sel.innerHTML = ids.map(id => `<option value="${id}"${id === currentId ? " selected" : ""}>${esc(diets[id].name || "Untitled diet")}</option>`).join("");
-    sel.hidden = !ids.length;
-    $("label[for=dietSelect]").hidden = !ids.length;
+    if (!sel) return;
+    sel.innerHTML = sortedDietIds().map(id => `<option value="${id}"${id === currentId ? " selected" : ""}>${esc(diets[id].name || "Untitled diet")}</option>`).join("");
   }
 
   function render() {
     if (currentId && !diets[currentId]) currentId = null;
-    if (!currentId) currentId = Object.keys(diets).sort((a, b) => (diets[b].createdAt || 0) - (diets[a].createdAt || 0))[0] || null;
-    renderPicker();
+    if (!currentId) currentId = sortedDietIds()[0] || null;
+    document.querySelectorAll(".tab").forEach(t => {
+      if (t.dataset.view === view) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
+    });
     const main = $("#main");
-    $("#profileBtn").setAttribute("aria-pressed", view === "profile");
     if (view === "profile") { main.innerHTML = renderProfile(); return; }
+    if (view === "about") { main.innerHTML = renderAbout(); return; }
+    main.innerHTML = renderHome();
+    renderPicker();
+  }
+
+  function renderToolbar(hasDiets) {
+    return `<div class="toolbar">
+      ${hasDiets ? `<label class="label" for="dietSelect" hidden>Diet</label><select id="dietSelect" aria-label="Choose a diet"></select>` : ""}
+      ${hasDiets ? `<button class="primary" data-act="new-diet">New diet</button>` : ""}
+      <button class="scan-btn" data-act="scan">${SCAN_ICON}<span>Scan product</span></button>
+    </div>`;
+  }
+
+  function renderHome() {
     const diet = cur();
     if (!diet) {
-      main.innerHTML = `<section class="welcome">
+      return `<div style="display:grid;gap:16px">${renderToolbar(false)}<section class="welcome">
         <span class="label">Start here</span>
         <h2>Create your first diet</h2>
-        <p>A diet holds your days. Each day holds your meals (name, description and calories), snacks, drinks and a note for the day. The diet itself has its own note for its rules and goals.</p>
+        <p>A diet holds your days. Each day holds your meals (name, description and calories), snacks, drinks and a note for the day. Tick each one off when you have it.</p>
         <div class="btns"><button class="primary" data-act="first-diet">Create a diet</button><button data-act="example">Load an example</button></div>
-      </section>`;
-      return;
+      </section></div>`;
     }
     const days = sortedDays(diet);
-    const totals = days.map(dayTotal);
-    const sum = totals.reduce((a, b) => a + b, 0);
+    const sum = days.reduce((s, d) => s + dayTotal(d), 0);
     const logged = days.filter(d => d.items.length);
     const avg = logged.length ? logged.reduce((s, d) => s + dayTotal(d), 0) / logged.length : 0;
     const target = Number(diet.target) || 0;
     const onTarget = target ? logged.filter(d => dayTotal(d) <= target).length : null;
 
-    main.innerHTML = `
-    <div style="display:grid;gap:20px">
+    return `
+    <div style="display:grid;gap:16px">
+      ${renderToolbar(true)}
       <section class="diet" aria-label="Diet details">
         <div class="diet-head">
           <input class="diet-name" id="dietName" value="${esc(diet.name)}" aria-label="Diet name" maxlength="80">
-          <button class="ghost danger ${armed === "diet" ? "armed" : ""}" data-act="del-diet">${armed === "diet" ? "Click again to delete diet" : "Delete diet"}</button>
+          <button class="ghost danger ${armed === "diet" ? "armed" : ""}" data-act="del-diet">${armed === "diet" ? "Tap again to delete diet" : "Delete diet"}</button>
         </div>
         <div class="stats">
           <div class="stat"><span class="label">Days</span><span class="v">${days.length}</span></div>
@@ -393,24 +535,68 @@ textarea { resize: vertical; min-height: 64px; }
     </div>`;
   }
 
+  // ---- avatars: one friendly cartoon per body range, only the build changes ----
+  const BANDS = {
+    under:   { name: "Underweight", note: "Below the healthy range", half: 13, belly: 0, pill: "var(--warn)" },
+    healthy: { name: "Healthy range", note: "Right in the healthy range", half: 18, belly: 0, pill: "var(--good)" },
+    over:    { name: "Overweight", note: "A little above the healthy range", half: 24, belly: 6, pill: "var(--warn)" },
+    obese:   { name: "Obese", note: "Well above the healthy range", half: 31, belly: 12, pill: "var(--bad)" }
+  };
+  const bandOf = bmi => !bmi ? null : bmi < 18.5 ? "under" : bmi < 25 ? "healthy" : bmi < 30 ? "over" : "obese";
+  function avatarSVG(band) {
+    const b = BANDS[band] || BANDS.healthy;
+    const hw = b.half, cx = 60;
+    const legW = Math.max(9, Math.round(hw * 0.55)), gap = Math.max(3, Math.round(hw * 0.2));
+    const armX = cx - hw - 9, armX2 = cx + hw;
+    const unknown = !BANDS[band];
+    return `<svg viewBox="0 0 120 150" role="img" aria-label="${unknown ? "Cartoon person" : b.name + " cartoon"}">
+      <ellipse cx="60" cy="144" rx="${hw + 14}" ry="4" fill="var(--line)"/>
+      <rect x="${cx - gap / 2 - legW}" y="100" width="${legW}" height="38" rx="4" fill="var(--pants)"/>
+      <rect x="${cx + gap / 2}" y="100" width="${legW}" height="38" rx="4" fill="var(--pants)"/>
+      <ellipse cx="${cx - gap / 2 - legW / 2}" cy="139" rx="${legW / 2 + 3}" ry="4" fill="var(--face)"/>
+      <ellipse cx="${cx + gap / 2 + legW / 2}" cy="139" rx="${legW / 2 + 3}" ry="4" fill="var(--face)"/>
+      <rect x="${armX}" y="54" width="9" height="40" rx="4.5" fill="var(--skin)"/>
+      <rect x="${armX2}" y="54" width="9" height="40" rx="4.5" fill="var(--skin)"/>
+      <rect x="${armX}" y="52" width="9" height="16" rx="4.5" fill="${unknown ? "var(--muted)" : "var(--accent)"}"/>
+      <rect x="${armX2}" y="52" width="9" height="16" rx="4.5" fill="${unknown ? "var(--muted)" : "var(--accent)"}"/>
+      <rect x="${cx - hw}" y="48" width="${hw * 2}" height="58" rx="${Math.min(hw, 16)}" fill="${unknown ? "var(--muted)" : "var(--accent)"}"/>
+      ${b.belly ? `<ellipse cx="${cx}" cy="86" rx="${hw + b.belly / 2}" ry="${16 + b.belly}" fill="var(--accent)"/>` : ""}
+      <rect x="56" y="42" width="8" height="8" fill="var(--skin)"/>
+      <circle cx="60" cy="28" r="${band === "obese" ? 19 : band === "over" ? 18 : 17}" fill="var(--skin)"/>
+      <path d="M42 26 Q44 8 60 9 Q77 8 78 26 Q70 17 60 18 Q50 17 42 26Z" fill="var(--hair)"/>
+      <circle cx="53" cy="29" r="2.2" fill="var(--face)"/><circle cx="67" cy="29" r="2.2" fill="var(--face)"/>
+      ${band === "over" || band === "obese" ? `<circle cx="48" cy="35" r="3" fill="var(--cheek)" opacity=".7"/><circle cx="72" cy="35" r="3" fill="var(--cheek)" opacity=".7"/>` : ""}
+      <path d="M53 36 Q60 42 67 36" fill="none" stroke="var(--face)" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+  }
+
   function renderProfile() {
     const w = Number(profile.weight_kg) || 0, tw = Number(profile.target_weight_kg) || 0, h = Number(profile.height_cm) || 0;
     const bmi = w && h ? w / ((h / 100) ** 2) : 0;
-    const band = !bmi ? "" : bmi < 18.5 ? "Underweight" : bmi < 25 ? "Healthy range" : bmi < 30 ? "Overweight" : "Obese";
+    const tbmi = tw && h ? tw / ((h / 100) ** 2) : 0;
+    const band = bandOf(bmi), tband = bandOf(tbmi);
     const diff = w && tw ? tw - w : null;
     const toGo = diff === null ? "–" : Math.abs(diff) < 0.05 ? "At target" : `${Math.abs(diff).toFixed(1)}<small> kg to ${diff < 0 ? "lose" : "gain"}</small>`;
-    const tBmi = tw && h ? (tw / ((h / 100) ** 2)).toFixed(1) : "–";
+    const card = (title, b, value) => `<div class="avatar-card">
+        <span class="label">${title}</span>
+        ${avatarSVG(b)}
+        <span class="band">${b ? BANDS[b].name : "Add your details"}</span>
+        <span class="band-pill num" style="color:${b ? BANDS[b].pill : "var(--muted)"}">${value ? "BMI " + value.toFixed(1) : "BMI –"}</span>
+      </div>`;
     return `<section class="diet" aria-label="Profile">
-      <div class="diet-head"><div style="display:grid;gap:4px"><h2 style="font-size:24px">Profile</h2><span style="color:var(--muted);font-size:14px">${esc(userEmail)}</span></div>
-        <button data-act="back">Back to diets</button></div>
+      <div class="diet-head"><div style="display:grid;gap:4px;min-width:0"><h2 style="font-size:24px">Profile</h2><span style="color:var(--muted);font-size:14px;overflow-wrap:anywhere">${esc(userEmail)}</span></div></div>
+      <div class="avatars">
+        ${card("You now", band, bmi)}
+        ${card("At your target", tband, tbmi)}
+      </div>
       <div class="stats">
         <div class="stat"><span class="label">BMI</span><span class="v">${bmi ? bmi.toFixed(1) : "–"}</span></div>
-        <div class="stat"><span class="label">Range</span><span class="v" style="font-size:16px;font-family:var(--font-body);font-weight:700">${band || "–"}</span></div>
+        <div class="stat"><span class="label">Range</span><span class="v" style="font-size:16px;font-family:var(--font-body);font-weight:700">${band ? BANDS[band].name : "–"}</span></div>
         <div class="stat"><span class="label">To target</span><span class="v">${toGo}</span></div>
-        <div class="stat"><span class="label">BMI at target</span><span class="v">${tBmi}</span></div>
+        <div class="stat"><span class="label">BMI at target</span><span class="v">${tbmi ? tbmi.toFixed(1) : "–"}</span></div>
       </div>
       <form id="profileForm" style="display:grid;gap:14px">
-        <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+        <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
           <div class="field"><label class="label" for="pWeight">Current weight (kg)</label><input id="pWeight" name="weight_kg" type="number" inputmode="decimal" min="20" max="400" step="0.1" value="${w || ""}" placeholder="e.g. 82.5"></div>
           <div class="field"><label class="label" for="pTarget">Target weight (kg)</label><input id="pTarget" name="target_weight_kg" type="number" inputmode="decimal" min="20" max="400" step="0.1" value="${tw || ""}" placeholder="e.g. 75"></div>
           <div class="field"><label class="label" for="pHeight">Height (cm)</label><input id="pHeight" name="height_cm" type="number" inputmode="decimal" min="80" max="250" step="0.5" value="${h || ""}" placeholder="e.g. 178"></div>
@@ -418,6 +604,22 @@ textarea { resize: vertical; min-height: 64px; }
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="primary" type="submit">Save profile</button><span id="profileMsg" class="note-saved" role="status"></span></div>
       </form>
       <p style="margin:0;color:var(--muted);font-size:13px;max-width:65ch">BMI is a rough guide. It doesn't tell muscle from fat, so use it alongside how your clothes fit and how you feel.</p>
+    </section>`;
+  }
+
+  function renderAbout() {
+    return `<section class="diet about" aria-label="About NutriMate">
+      <h2 style="font-size:24px">About NutriMate</h2>
+      <p>NutriMate helps you plan and follow a diet one day at a time. Build a diet, add days, log your meals, snacks and drinks with their calories, and tick each one off when you have it.</p>
+      <ul>
+        <li><b>Diets and days.</b> Each diet has its own note and an optional daily calorie target. Each day has its own note too.</li>
+        <li><b>Ticks.</b> Tap the box next to a meal, snack or drink when you have it. "Reset ticks" clears a whole day.</li>
+        <li><b>Scan.</b> Scan a product's barcode, or type its numbers, to see calories, sugar and protein for the amount you eat, with quick feedback. You can add it straight to today.</li>
+        <li><b>Profile.</b> Your weight, target and height give your BMI range and a cartoon of you now and at your target.</li>
+      </ul>
+      <p><b>Your data.</b> Everything is saved to your account, so you see the same diets on your phone and computer. Only you can see your diets.</p>
+      <p><b>Health note.</b> NutriMate is a tracking tool, not medical advice. BMI and the sugar and protein feedback are general guides. Talk to a doctor or dietitian before a big change to how you eat.</p>
+      <p style="color:var(--muted);font-size:13px">Product data comes from <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, a free database built by volunteers, available under the Open Database License. It can be incomplete, so check the label when something looks off.</p>
     </section>`;
   }
 
@@ -451,13 +653,14 @@ textarea { resize: vertical; min-height: 64px; }
     const full = dt.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
     const over = target && total > target;
     const pct = target ? Math.min(100, (total / target) * 100) : 0;
+    const done = day.items.filter(i => i.done).length;
     const counts = Object.keys(TYPES).map(t => { const n = day.items.filter(i => i.type === t).length; return n ? `${n} ${SINGULAR[t]}${n > 1 ? "s" : ""}` : null; }).filter(Boolean).join(" · ") || "Nothing logged yet";
     const type = addType[day.id] || "meal";
     return `<article class="day" data-day="${day.id}">
       <div class="day-bar" data-act="toggle" role="button" tabindex="0" aria-expanded="${open}">
         <div class="date-chip"><b>${dt.getDate()}</b><span>${esc(mon)}</span></div>
         <div class="day-title"><strong>${esc(wk)}, ${esc(full)}</strong>
-          <span style="color:var(--muted);font-size:13px">${counts}</span>
+          <span style="color:var(--muted);font-size:13px">${counts}${day.items.length ? ` · ${done}/${day.items.length} ticked` : ""}</span>
           ${target ? `<div class="meter ${over ? "over" : ""}"><i style="width:${pct}%"></i></div>` : ""}
         </div>
         <div class="day-total"><div class="v ${over ? "over" : ""}">${fmt(total)}${target ? `<span style="color:var(--muted);font-size:13px"> / ${fmt(target)}</span>` : ""}</div><div class="label">kcal</div></div>
@@ -477,7 +680,13 @@ textarea { resize: vertical; min-height: 64px; }
         </form>
         <div class="field"><label class="label" for="note-${day.id}">Day note</label>
           <textarea id="note-${day.id}" data-note="${day.id}" placeholder="How did today go?">${esc(day.note)}</textarea></div>
-        <div class="day-foot"><button class="ghost danger ${armed === "day:" + day.id ? "armed" : ""}" data-act="del-day">${armed === "day:" + day.id ? "Click again to delete day" : "Delete day"}</button></div>
+        <div class="day-foot">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button data-act="reset-checks" ${done ? "" : "disabled"}>Reset ticks</button>
+            <span class="progress-txt">${done}/${day.items.length} ticked</span>
+          </div>
+          <button class="ghost danger ${armed === "day:" + day.id ? "armed" : ""}" data-act="del-day">${armed === "day:" + day.id ? "Tap again to delete day" : "Delete day"}</button>
+        </div>
       </div>` : ""}
     </article>`;
   }
@@ -486,8 +695,9 @@ textarea { resize: vertical; min-height: 64px; }
     const items = day.items.filter(i => i.type === t);
     return `<div class="group t-${t}">
       <div class="group-h"><span class="label"><i class="dot"></i>${TYPES[t]}</span><span class="num" style="font-size:13px;color:var(--muted)">${fmt(typeTotal(day, t))} kcal</span></div>
-      ${items.length ? `<ul class="items">${items.map(i => editing === i.id ? renderEdit(day, i) : `<li class="item t-${t}" data-item="${i.id}">
-          <div><div class="name">${esc(i.name)}</div>${i.desc ? `<div class="desc">${esc(i.desc)}</div>` : ""}</div>
+      ${items.length ? `<ul class="items">${items.map(i => editing === i.id ? renderEdit(day, i) : `<li class="item t-${t}${i.done ? " done" : ""}" data-item="${i.id}">
+          <label class="check" title="${i.done ? "Untick" : "Tick when you have it"}"><input type="checkbox" data-check="${i.id}" ${i.done ? "checked" : ""} aria-label="I had ${esc(i.name)}"></label>
+          <div class="body"><div class="name">${esc(i.name)}${i.done ? `<span class="taken">Done</span>` : ""}</div>${i.desc ? `<div class="desc">${esc(i.desc)}</div>` : ""}</div>
           <span class="kcal">${fmt(Number(i.kcal) || 0)} kcal</span>
           <span class="acts"><button class="ghost" data-act="edit" aria-label="Edit ${esc(i.name)}">Edit</button><button class="ghost danger" data-act="del-item" aria-label="Delete ${esc(i.name)}">✕</button></span>
         </li>`).join("")}</ul>` : `<div class="empty-g">No ${TYPES[t].toLowerCase()} yet</div>`}
@@ -498,30 +708,290 @@ textarea { resize: vertical; min-height: 64px; }
     return `<li><form class="edit-form t-${i.type}" data-form="edit" data-day="${day.id}" data-item="${i.id}">
       <div class="adder-grid">
         <div class="field"><label class="label" for="en-${i.id}">Name</label><input id="en-${i.id}" name="name" required maxlength="120" value="${esc(i.name)}"></div>
-        <div class="field"><label class="label" for="ek-${i.id}">Calories</label><input id="ek-${i.id}" name="kcal" type="number" min="0" step="1" required value="${Number(i.kcal) || 0}"></div>
+        <div class="field"><label class="label" for="ek-${i.id}">Calories</label><input id="ek-${i.id}" name="kcal" type="number" inputmode="numeric" min="0" step="1" required value="${Number(i.kcal) || 0}"></div>
         <div style="display:flex;gap:6px" class="add-btn"><button class="primary" type="submit">Save</button><button type="button" data-act="cancel-edit">Cancel</button></div>
       </div>
-      ${i.type === "meal" ? `<div class="field"><label class="label" for="ed-${i.id}">Description</label><input id="ed-${i.id}" name="desc" maxlength="400" value="${esc(i.desc)}"></div>` : ""}
+      ${i.type === "meal" || i.desc ? `<div class="field"><label class="label" for="ed-${i.id}">Description</label><input id="ed-${i.id}" name="desc" maxlength="400" value="${esc(i.desc)}"></div>` : ""}
     </form></li>`;
   }
+
+  // ---- scanner ----
+  // Barcode -> Open Food Facts lookup. Reading the printed label from a photo (OCR) is unreliable,
+  // so the fallback is typing the label's per-100 g values by hand.
+  let scan = { step: "choose" };
+  let camera = null;
+  const SCAN_LIB = "vendor/html5-qrcode-2.3.8.min.js";
+  function loadScanLib() {
+    if (window.Html5Qrcode) return Promise.resolve();
+    return new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = SCAN_LIB; s.onload = () => res(); s.onerror = () => rej(new Error("load"));
+      document.head.appendChild(s);
+    });
+  }
+  const barcodeFormats = () => { const F = window.Html5QrcodeSupportedFormats; return [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.CODE_128]; };
+
+  function openSheet() { scan = { step: "choose" }; $("#sheet").hidden = false; document.body.style.overflow = "hidden"; renderSheet(); }
+  async function closeSheet() { await stopCamera(); $("#sheet").hidden = true; document.body.style.overflow = ""; }
+
+  async function startCamera() {
+    scan = { step: "camera" }; renderSheet();
+    try {
+      await loadScanLib();
+      camera = new window.Html5Qrcode("scanReader", { formatsToSupport: barcodeFormats(), verbose: false });
+      await camera.start({ facingMode: "environment" },
+        { fps: 10, qrbox: (w, h) => ({ width: Math.floor(Math.min(w * 0.85, 320)), height: Math.floor(Math.min(h * 0.45, 150)) }), aspectRatio: 1.333 },
+        code => { stopCamera().then(() => lookup(code)); }, () => {});
+    } catch (e) {
+      await stopCamera();
+      scan = { step: "choose", error: /permission|notallowed/i.test(String(e && (e.name || e.message || e)))
+        ? "Camera access was blocked. Allow the camera for this site in your browser settings, or use a photo instead."
+        : "The camera could not start on this device. Use a photo or type the barcode numbers instead." };
+      renderSheet();
+    }
+  }
+  async function stopCamera() {
+    if (!camera) return;
+    const c = camera; camera = null;
+    try { if (c.isScanning) await c.stop(); c.clear(); } catch (e) {}
+  }
+  async function scanPhoto(file) {
+    scan = { step: "loading", text: "Reading the barcode in your photo…" }; renderSheet();
+    try {
+      await loadScanLib();
+      const reader = new window.Html5Qrcode("scanFileTmp", { formatsToSupport: barcodeFormats(), verbose: false });
+      try { const code = await reader.scanFile(file, false); await lookup(code); }
+      finally { try { reader.clear(); } catch (e) {} }
+    } catch (e) {
+      scan = { step: "choose", error: "No barcode found in that photo. Take a closer, sharper photo of the bars, or type the numbers under them." };
+      renderSheet();
+    }
+  }
+  async function lookup(raw) {
+    const code = String(raw || "").replace(/\D/g, "");
+    if (code.length < 6) { scan = { step: "choose", error: "That doesn't look like a product barcode. It should be 8 to 13 digits." }; renderSheet(); return; }
+    scan = { step: "loading", text: `Looking up ${code}…` }; renderSheet();
+    try {
+      const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,brands,nutriments,serving_quantity,serving_size,categories_tags`);
+      const j = await r.json();
+      if (j.status !== 1 || !j.product) { scan = { step: "notfound", code }; renderSheet(); return; }
+      const p = j.product, n = p.nutriments || {};
+      const num = v => (v === undefined || v === null || v === "" || isNaN(Number(v))) ? null : Number(v);
+      let kcal = num(n["energy-kcal_100g"]);
+      if (kcal === null && num(n["energy_100g"]) !== null) kcal = num(n["energy_100g"]) / 4.184;
+      const isDrink = (p.categories_tags || []).some(c => /beverages|drinks/.test(c));
+      scan = { step: "result", source: "barcode", code,
+        name: p.product_name || "Unnamed product", brand: (p.brands || "").split(",")[0].trim(),
+        per: { kcal, sugar: num(n.sugars_100g), protein: num(n.proteins_100g), fat: num(n.fat_100g), salt: num(n.salt_100g), fiber: num(n.fiber_100g) },
+        grams: num(p.serving_quantity) || 100, servingLabel: p.serving_size || "", isDrink };
+    } catch (e) {
+      scan = { step: "choose", error: "Couldn't reach the product database. Check your internet connection and try again, or enter the label values by hand." };
+    }
+    renderSheet();
+  }
+  function manualEntry(code) {
+    scan = { step: "result", source: "manual", code: code || "", name: "", brand: "", per: { kcal: null, sugar: null, protein: null, fat: null, salt: null, fiber: null }, grams: 100, servingLabel: "", isDrink: false };
+    renderSheet();
+  }
+
+  // Feedback per 100 g uses UK traffic-light thresholds; protein uses the EU "source of"/"high" claim rules.
+  function feedback(s) {
+    const p = s.per, g = Number(s.grams) || 0, out = [];
+    const portion = v => v === null ? null : v * g / 100;
+    const drink = s.isDrink || addTypeFor(s) === "drink";
+    if (p.sugar !== null) {
+      const hi = drink ? 11.25 : 22.5, lo = drink ? 2.5 : 5;
+      const tsp = portion(p.sugar) / 4;
+      if (p.sugar > hi) out.push(["bad", `High in sugar: ${fmt1(p.sugar)} g per 100 ${drink ? "ml" : "g"}. Your portion has about ${fmt1(tsp)} teaspoons of sugar.`]);
+      else if (p.sugar <= lo) out.push(["good", `Low in sugar: ${fmt1(p.sugar)} g per 100 ${drink ? "ml" : "g"}.`]);
+      else out.push(["ok", `Medium sugar: ${fmt1(p.sugar)} g per 100 ${drink ? "ml" : "g"} (about ${fmt1(tsp)} teaspoons in your portion).`]);
+    }
+    if (p.protein !== null && p.kcal) {
+      const share = (p.protein * 4) / p.kcal;
+      if (share >= 0.2) out.push(["good", `High in protein: ${Math.round(share * 100)}% of its calories come from protein.`]);
+      else if (share >= 0.12) out.push(["ok", `A source of protein: ${Math.round(share * 100)}% of its calories come from protein.`]);
+      else out.push(["ok", `Low in protein: only ${Math.round(share * 100)}% of its calories come from protein.`]);
+    }
+    if (p.fat !== null) {
+      if (p.fat > (drink ? 8.75 : 17.5)) out.push(["bad", `High in fat: ${fmt1(p.fat)} g per 100 ${drink ? "ml" : "g"}.`]);
+      else if (p.fat <= (drink ? 1.5 : 3)) out.push(["good", `Low in fat: ${fmt1(p.fat)} g per 100 ${drink ? "ml" : "g"}.`]);
+    }
+    if (p.salt !== null && p.salt > (drink ? 0.75 : 1.5)) out.push(["bad", `High in salt: ${fmt1(p.salt)} g per 100 ${drink ? "ml" : "g"}.`]);
+    if (p.kcal !== null) {
+      const target = Number(cur()?.target) || 0;
+      const k = portion(p.kcal);
+      if (target) {
+        const share = k / target;
+        out.push([share > 0.35 ? "bad" : share > 0.15 ? "ok" : "good", `Your portion is ${fmt(k)} kcal, ${Math.round(share * 100)}% of your ${fmt(target)} kcal daily target.`]);
+      } else if (p.kcal >= 400) out.push(["ok", `Very calorie-dense: ${fmt(p.kcal)} kcal per 100 g. Small portions add up fast.`]);
+      else if (p.kcal <= 100) out.push(["good", `Light: ${fmt(p.kcal)} kcal per 100 ${drink ? "ml" : "g"}.`]);
+    }
+    if (!out.length) out.push(["ok", "Not enough nutrition data to give feedback. Fill in the values from the label."]);
+    return out;
+  }
+  const addTypeFor = s => s.addType || (s.isDrink ? "drink" : "snack");
+
+  function renderSheet() {
+    const el = $("#sheet");
+    const s = scan;
+    let body = "";
+    if (s.step === "choose") {
+      body = `
+        ${s.error ? `<div class="msg" role="alert">${esc(s.error)}</div>` : ""}
+        <div class="scan-options">
+          <button data-scan="camera">${SCAN_ICON}<span><b>Scan with camera</b><small>Point your camera at the barcode</small></span></button>
+          <label class="btnlike" for="scanPhoto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg><span><b>Use a photo</b><small>Take or pick a photo of the barcode</small></span></label>
+          <input id="scanPhoto" type="file" accept="image/*" capture="environment" hidden>
+        </div>
+        <div class="or">or</div>
+        <form class="inline-form" id="codeForm">
+          <input id="codeInput" inputmode="numeric" autocomplete="off" placeholder="Type the barcode numbers" aria-label="Barcode numbers" pattern="[0-9 ]*">
+          <button class="primary" type="submit">Look up</button>
+        </form>
+        <button class="linkish" data-scan="manual" style="justify-self:start">No barcode? Enter the label values by hand</button>`;
+    } else if (s.step === "camera") {
+      body = `<div id="scanReader"></div><p style="margin:0;color:var(--muted);font-size:14px">Hold the barcode inside the box, about 15 cm from the camera.</p>
+        <button data-scan="back">Stop camera</button>`;
+    } else if (s.step === "loading") {
+      body = `<p style="margin:0">${esc(s.text)}</p>`;
+    } else if (s.step === "notfound") {
+      body = `<div class="product"><h3>Product not found</h3><p style="margin:0;color:var(--muted)">Barcode ${esc(s.code)} isn't in the Open Food Facts database yet. Enter the values from the label and NutriMate will do the maths.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" data-scan="manual">Enter label values</button><button data-scan="back">Scan again</button></div></div>`;
+    } else if (s.step === "result") {
+      body = renderResult(s);
+    }
+    el.innerHTML = `<div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="sheet-head"><h2 id="sheetTitle">${SCAN_ICON}Scan product</h2><button class="ghost" data-scan="close" aria-label="Close">Close</button></div>
+      ${body}
+    </div>`;
+  }
+
+  function renderResult(s) {
+    const manual = s.source === "manual";
+    const unit = s.isDrink ? "ml" : "g";
+    const p = s.per, g = Number(s.grams) || 0;
+    const row = (label, key, unitTxt) => {
+      const v = p[key];
+      const port = v === null ? "–" : (key === "kcal" ? fmt(v * g / 100) : fmt1(v * g / 100));
+      return manual
+        ? `<tr><th scope="row">${label}</th><td><input data-per="${key}" type="number" inputmode="decimal" min="0" step="0.1" value="${v ?? ""}" aria-label="${label} per 100 ${unit}" style="max-width:96px;text-align:right"></td><td data-port="${key}">${port}${v === null ? "" : unitTxt}</td></tr>`
+        : `<tr><th scope="row">${label}</th><td>${v === null ? "–" : (key === "kcal" ? fmt(v) : fmt1(v)) + unitTxt}</td><td data-port="${key}">${port}${v === null ? "" : unitTxt}</td></tr>`;
+    };
+    const t = addTypeFor(s);
+    return `<div class="product">
+      ${manual
+        ? `<div class="field"><label class="label" for="pName">Product name</label><input id="pName" data-name value="${esc(s.name)}" placeholder="e.g. Chocolate bar"></div>`
+        : `<div><h3>${esc(s.name)}</h3><span style="color:var(--muted);font-size:14px">${esc(s.brand)}${s.brand ? " · " : ""}barcode ${esc(s.code)}</span></div>`}
+      <div class="field"><label class="label" for="pGrams">How much you eat (${unit})</label>
+        <input id="pGrams" data-grams type="number" inputmode="decimal" min="1" step="1" value="${g || ""}">
+        ${s.servingLabel ? `<small style="color:var(--muted)">One serving on the pack: ${esc(s.servingLabel)}</small>` : ""}</div>
+      <div style="overflow-x:auto"><table class="nutri">
+        <thead><tr><th></th><th>Per 100 ${unit}</th><th>Your portion</th></tr></thead>
+        <tbody>
+          ${row("Calories", "kcal", " kcal")}
+          ${row("Sugar", "sugar", " g")}
+          ${row("Protein", "protein", " g")}
+          ${row("Fat", "fat", " g")}
+          ${row("Salt", "salt", " g")}
+        </tbody>
+      </table></div>
+      <div class="field"><span class="label">Feedback</span><ul class="feedback" id="fbList">${renderFeedback(s)}</ul></div>
+    </div>
+    <div class="product t-${t}">
+      <span class="label">Add to today</span>
+      <div class="seg" role="group" aria-label="Add as">
+        ${Object.keys(TYPES).map(k => `<button type="button" class="t-${k}" data-addtype="${k}" aria-pressed="${k === t}">${SINGULAR[k][0].toUpperCase() + SINGULAR[k].slice(1)}</button>`).join("")}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="primary" data-scan="add">Add to ${esc(cur()?.name || "a new diet")}</button>
+        <button data-scan="back">Scan another</button>
+      </div>
+    </div>`;
+  }
+  const renderFeedback = s => feedback(s).map(([lvl, txt]) => `<li class="lvl-${lvl}"><i aria-hidden="true"></i><span><span class="sr-only">${lvl === "good" ? "Good: " : lvl === "bad" ? "Watch out: " : "Note: "}</span>${esc(txt)}</span></li>`).join("");
+  function refreshResultNumbers() {
+    const s = scan, g = Number(s.grams) || 0;
+    Object.keys(s.per).forEach(k => {
+      const cell = document.querySelector(`[data-port="${k}"]`);
+      if (!cell) return;
+      const v = s.per[k];
+      cell.textContent = v === null ? "–" : (k === "kcal" ? fmt(v * g / 100) + " kcal" : fmt1(v * g / 100) + " g");
+    });
+    const fb = $("#fbList"); if (fb) fb.innerHTML = renderFeedback(s);
+  }
+  function addScanned() {
+    const s = scan;
+    const g = Number(s.grams) || 0;
+    const name = (s.name || "").trim() || "Scanned product";
+    if (s.per.kcal === null) { toast("Add the calories first"); return; }
+    if (!cur()) { newDiet("My diet"); }
+    const diet = cur();
+    const t = todayISO();
+    let day = diet.days.find(d => d.date === t);
+    if (!day) { day = { id: uid(), date: t, note: "", items: [] }; diet.days.push(day); }
+    const unit = s.isDrink ? "ml" : "g";
+    const bits = [`${fmt(g)} ${unit}`];
+    if (s.per.sugar !== null) bits.push(`${fmt1(s.per.sugar * g / 100)} g sugar`);
+    if (s.per.protein !== null) bits.push(`${fmt1(s.per.protein * g / 100)} g protein`);
+    day.items.push({ id: uid(), type: addTypeFor(s), name: s.brand ? `${name} (${s.brand})` : name, desc: bits.join(" · "), kcal: Math.round(s.per.kcal * g / 100), done: false });
+    openDays.add(day.id);
+    persist(currentId);
+    closeSheet();
+    view = "home";
+    render();
+    toast(`Added to today in ${diet.name}`);
+  }
+
+  const sheetEl = $("#sheet");
+  sheetEl.addEventListener("click", e => {
+    if (e.target === sheetEl) { closeSheet(); return; }
+    const b = e.target.closest("[data-scan],[data-addtype]");
+    if (!b) return;
+    if (b.dataset.addtype) { scan.addType = b.dataset.addtype; renderSheet(); return; }
+    const a = b.dataset.scan;
+    if (a === "close") closeSheet();
+    else if (a === "camera") startCamera();
+    else if (a === "manual") manualEntry(scan.code);
+    else if (a === "back") { stopCamera(); scan = { step: "choose" }; renderSheet(); }
+    else if (a === "add") addScanned();
+  });
+  sheetEl.addEventListener("submit", e => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.target.id === "codeForm") lookup($("#codeInput").value);
+  });
+  sheetEl.addEventListener("change", e => {
+    if (e.target.id === "scanPhoto" && e.target.files && e.target.files[0]) scanPhoto(e.target.files[0]);
+  });
+  sheetEl.addEventListener("input", e => {
+    const t = e.target;
+    if (t.dataset.grams !== undefined) { scan.grams = parseFloat(t.value) || 0; refreshResultNumbers(); }
+    else if (t.dataset.per) { const v = parseFloat(t.value); scan.per[t.dataset.per] = Number.isFinite(v) ? v : null; refreshResultNumbers(); }
+    else if (t.dataset.name !== undefined) { scan.name = t.value; }
+  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !sheetEl.hidden) closeSheet(); });
 
   // ---- events ----
   const findDay = id => cur()?.days.find(d => d.id === id);
 
   document.addEventListener("click", e => {
+    if (e.target.closest("#sheet")) return;
+    const tab = e.target.closest(".tab");
+    if (tab) { view = tab.dataset.view; armed = null; editing = null; render(); window.scrollTo(0, 0); return; }
     const b = e.target.closest("[data-act]");
-    if (!b) { if (armed) { armed = null; render(); } return; }
+    if (!b) { if (armed && !e.target.closest("input, textarea, select, label")) { armed = null; render(); } return; }
     const act = b.dataset.act;
     const dayEl = b.closest("[data-day]");
     const day = dayEl && findDay(dayEl.dataset.day);
     if (act !== "del-diet" && act !== "del-day" && armed) armed = null;
-    if (act === "back") { view = "diets"; render(); }
+    if (act === "scan") openSheet();
+    else if (act === "new-diet") { newDiet("New diet"); persist(currentId); render(); const n = $("#dietName"); n?.focus(); n?.select(); }
     else if (act === "first-diet") { newDiet("My diet"); persist(currentId); render(); $("#dietName")?.select(); }
     else if (act === "example") { const id = exampleDiet(); persist(id); render(); }
     else if (act === "toggle" && day) { openDays.has(day.id) ? openDays.delete(day.id) : openDays.add(day.id); render(); }
     else if (act === "type" && day) { addType[day.id] = b.dataset.type; render(); $(`#n-${day.id}`)?.focus(); }
     else if (act === "edit" && day) { editing = b.closest("[data-item]").dataset.item; render(); }
     else if (act === "cancel-edit") { editing = null; render(); }
+    else if (act === "reset-checks" && day) { day.items.forEach(i => { i.done = false; }); persist(currentId); render(); toast("Ticks cleared"); }
     else if (act === "del-item" && day) {
       const id = b.closest("[data-item]").dataset.item;
       day.items = day.items.filter(i => i.id !== id); persist(currentId); render();
@@ -543,6 +1013,7 @@ textarea { resize: vertical; min-height: 64px; }
   document.addEventListener("submit", e => {
     e.preventDefault();
     const f = e.target;
+    if (f.closest("#sheet")) return;
     if (f.id === "profileForm") { saveProfile(f); return; }
     const diet = cur();
     if (!diet) return;
@@ -565,11 +1036,11 @@ textarea { resize: vertical; min-height: 64px; }
     if (!name) return;
     if (f.dataset.form === "add") {
       const type = addType[day.id] || "meal";
-      day.items.push({ id: uid(), type, name, desc: type === "meal" ? desc : "", kcal });
+      day.items.push({ id: uid(), type, name, desc: type === "meal" ? desc : "", kcal, done: false });
       persist(currentId); render(); $(`#n-${day.id}`)?.focus();
     } else if (f.dataset.form === "edit") {
       const it = day.items.find(i => i.id === f.dataset.item);
-      if (it) { it.name = name; it.kcal = kcal; if (it.type === "meal") it.desc = desc; }
+      if (it) { it.name = name; it.kcal = kcal; if (fd.has("desc")) it.desc = desc; }
       editing = null; persist(currentId); render();
     }
   });
@@ -577,19 +1048,23 @@ textarea { resize: vertical; min-height: 64px; }
   // text fields save as you type, without re-rendering under the cursor
   document.addEventListener("input", e => {
     const t = e.target, diet = cur();
-    if (!diet) return;
+    if (!diet || t.closest("#sheet")) return;
     if (t.id === "dietName") { diet.name = t.value; persist(currentId); renderPicker(); }
     else if (t.id === "dietNote") { diet.note = t.value; persist(currentId); }
     else if (t.dataset.note) { const d = findDay(t.dataset.note); if (d) { d.note = t.value; persist(currentId); } }
   });
   document.addEventListener("change", e => {
     const t = e.target, diet = cur();
-    if (t.id === "dietSelect") { view = "diets"; currentId = t.value; armed = null; editing = null; saveLocal(); render(); }
+    if (t.closest("#sheet")) return;
+    if (t.dataset.check) {
+      const day = findDay(t.closest("[data-day]").dataset.day);
+      const it = day && day.items.find(i => i.id === t.dataset.check);
+      if (it) { it.done = t.checked; persist(currentId); render(); }
+    }
+    else if (t.id === "dietSelect") { currentId = t.value; armed = null; editing = null; saveLocal(); render(); }
     else if (t.id === "dietTarget" && diet) { const v = Math.round(Number(t.value)); diet.target = v > 0 ? v : null; persist(currentId); render(); }
     else if (t.id === "dietName" && diet && !t.value.trim()) { diet.name = "Untitled diet"; persist(currentId); render(); }
   });
-  $("#profileBtn").addEventListener("click", () => { view = view === "profile" ? "diets" : "profile"; armed = null; render(); });
-  $("#newDiet").addEventListener("click", () => { view = "diets"; newDiet("New diet"); persist(currentId); render(); const n = $("#dietName"); n?.focus(); n?.select(); });
   $("#signOut").addEventListener("click", async () => { await Promise.all(Object.keys(timers).map(flush)); await sb.auth.signOut(); });
   $("#authForm").addEventListener("click", e => { if (e.target.id === "authSwitch") setAuthMode(!signUpMode); });
   $("#authForm").addEventListener("submit", async e => {
