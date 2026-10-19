@@ -267,6 +267,13 @@ textarea { resize: vertical; min-height: 64px; }
     $("#authMsg").hidden = true;
   }
   function authMsg(text, ok) { const m = $("#authMsg"); m.textContent = text; m.hidden = false; m.classList.toggle("ok", !!ok); }
+  function signInError(error, fromSignUp) {
+    if (/not confirmed/i.test(error.message)) return "This account was made before email confirmation was turned off. Confirm it in Supabase, then sign in.";
+    if (/invalid login credentials/i.test(error.message)) return fromSignUp
+      ? "An account with this email already exists. Sign in with its password instead."
+      : "That email and password don't match an account.";
+    return error.message;
+  }
   async function onSession(session) {
     const id = session?.user?.id || null;
     if (id === userId) return;
@@ -594,10 +601,15 @@ textarea { resize: vertical; min-height: 64px; }
       if (signUpMode) {
         const { data, error } = await sb.auth.signUp({ email, password });
         if (error) return authMsg(error.message);
-        if (!data.session) { setAuthMode(false); authMsg("Check your email and click the confirmation link, then sign in here.", true); }
+        if (!data.session) {
+          // No session back means the email needs confirming or already has an account; try signing in.
+          const res = await sb.auth.signInWithPassword({ email, password });
+          setAuthMode(false);
+          if (res.error) authMsg(signInError(res.error, true));
+        }
       } else {
         const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) authMsg(error.message === "Invalid login credentials" ? "That email and password don't match an account." : error.message);
+        if (error) authMsg(signInError(error, false));
       }
     } finally { $("#authSubmit").disabled = false; }
   });
