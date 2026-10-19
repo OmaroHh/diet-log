@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diet Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column log. Diet header on top, days as dated ledger cards below, newest first. */
+:root {
+  --bg: #f3f5f1;
+  --surface: #ffffff;
+  --surface-2: #e9eee7;
+  --ink: #18201b;
+  --muted: #5d6a62;
+  --line: #d5ddd4;
+  --accent: #2c6e4f;
+  --accent-ink: #ffffff;
+  --meal: #2c6e4f;
+  --snack: #b4651c;
+  --drink: #2f6697;
+  --danger: #b3261e;
+  --over: #c2410c;
+  --font-display: "Familjen Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121714; --surface: #1a211d; --surface-2: #232c26; --ink: #e6ece7; --muted: #9aa89f;
+    --line: #2f3a33; --accent: #6cc39a; --accent-ink: #0e1a13; --meal: #6cc39a; --snack: #e3a15e;
+    --drink: #7fb2e3; --danger: #f2877f; --over: #f59e62; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121714; --surface: #1a211d; --surface-2: #232c26; --ink: #e6ece7; --muted: #9aa89f;
+  --line: #2f3a33; --accent: #6cc39a; --accent-ink: #0e1a13; --meal: #6cc39a; --snack: #e3a15e;
+  --drink: #7fb2e3; --danger: #f2877f; --over: #f59e62; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 20px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; line-height: 1.15; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.label { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.primary:hover { filter: brightness(1.08); border-color: var(--accent); }
+.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 5px 8px; }
+.ghost:hover { color: var(--ink); border-color: var(--line); }
+.ghost[aria-pressed="true"] { color: var(--ink); border-color: var(--line); background: var(--surface); }
+.danger { color: var(--danger); }
+.danger.armed { background: var(--danger); color: var(--surface); border-color: var(--danger); }
+input, textarea, select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+textarea { resize: vertical; min-height: 64px; }
+
+/* Top bar */
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand h1 { font-size: 26px; letter-spacing: -.01em; }
+.sync { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.sync::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--snack); }
+.sync.cloud::before { background: var(--accent); }
+.picker { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.picker select { width: auto; max-width: 240px; }
+
+/* Diet panel */
+.diet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: grid; gap: 16px; }
+.diet-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.diet-name { font-family: var(--font-display); font-size: 24px; font-weight: 700; border: 1px solid transparent; background: transparent; padding: 2px 6px; margin-left: -7px; flex: 1 1 260px; }
+.diet-name:hover, .diet-name:focus { border-color: var(--line); background: var(--surface); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.stat { display: grid; gap: 2px; }
+.stat .v { font-family: var(--font-num); font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 12px; color: var(--muted); }
+.field { display: grid; gap: 6px; min-width: 0; }
+.row2 { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; }
+
+/* Days */
+.days-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; justify-content: space-between; }
+.days-head h2 { font-size: 20px; }
+.addday { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.addday input { width: auto; }
+.msg { font-size: 13px; color: var(--danger); }
+.days { display: grid; gap: 12px; }
+.day { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.day-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 14px; cursor: pointer; }
+.day-bar:hover { background: var(--surface-2); }
+.date-chip { display: grid; justify-items: center; width: 52px; padding: 4px 0; border-radius: 8px; background: var(--surface-2); line-height: 1.1; }
+.date-chip b { font-family: var(--font-display); font-size: 20px; }
+.date-chip span { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.day-title { display: grid; gap: 4px; min-width: 0; }
+.day-title strong { font-family: var(--font-display); font-size: 16px; }
+.meter { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; max-width: 320px; }
+.meter i { display: block; height: 100%; background: var(--accent); }
+.meter.over i { background: var(--over); }
+.day-total { text-align: right; }
+.day-total .v { font-family: var(--font-num); font-size: 18px; font-variant-numeric: tabular-nums; }
+.day-total .v.over { color: var(--over); }
+.day-body { border-top: 1px solid var(--line); padding: 14px; display: grid; gap: 16px; }
+.group { display: grid; gap: 6px; }
+.group-h { display: flex; justify-content: space-between; align-items: baseline; }
+.group-h .label { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.t-meal { --c: var(--meal); } .t-snack { --c: var(--snack); } .t-drink { --c: var(--drink); }
+.dot { background: var(--c); }
+.items { list-style: none; margin: 0; padding: 0; display: grid; }
+.item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: start; padding: 8px 0 8px 12px; border-left: 3px solid var(--c); border-bottom: 1px solid var(--line); }
+.item:last-child { border-bottom: 0; }
+.item .name { font-weight: 700; overflow-wrap: anywhere; }
+.item .desc { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.item .kcal { font-family: var(--font-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.item .acts { display: flex; gap: 2px; }
+.empty-g { color: var(--muted); font-size: 14px; padding-left: 12px; }
+.adder { background: var(--surface-2); border-radius: 8px; padding: 12px; display: grid; gap: 10px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: max-content; background: var(--surface); }
+.seg button { border: 0; border-radius: 0; padding: 6px 14px; background: transparent; }
+.seg button[aria-pressed="true"] { background: var(--c); color: var(--surface); font-weight: 700; }
+.adder-grid { display: grid; grid-template-columns: minmax(0, 1fr) 120px auto; gap: 8px; align-items: end; }
+.edit-form { display: grid; gap: 8px; padding: 8px 0 8px 12px; border-left: 3px solid var(--c); }
+.day-foot { display: flex; justify-content: flex-end; }
+
+/* Empty state */
+.welcome { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--r); padding: 28px 20px; display: grid; gap: 14px; justify-items: start; }
+.welcome h2 { font-size: 22px; }
+.welcome p { margin: 0; color: var(--muted); max-width: 60ch; }
+.welcome .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.note-saved { font-size: 12px; color: var(--muted); min-height: 1em; }
+.auth { max-width: 380px; margin: 40px auto 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 24px; display: grid; gap: 14px; }
+.auth h2 { font-size: 22px; }
+.auth p { margin: 0; color: var(--muted); }
+.auth .ok { color: var(--accent); }
+.linkish { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; }
+
+@media (max-width: 620px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .row2 { grid-template-columns: minmax(0, 1fr); }
+  .adder-grid { grid-template-columns: minmax(0, 1fr) 96px; }
+  .adder-grid .add-btn { grid-column: 1 / -1; }
+  .day-bar { grid-template-columns: auto minmax(0, 1fr); }
+  .day-total { grid-column: 2; text-align: left; }
+  .picker select { max-width: 100%; flex: 1 1 160px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .meter i { transition: width .3s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>Diet Log</h1><span id="sync" class="sync">Not signed in</span></div>
+    <div class="picker" id="picker" hidden>
+      <label class="label" for="dietSelect">Diet</label>
+      <select id="dietSelect"></select>
+      <button id="newDiet" class="primary">New diet</button>
+      <button id="profileBtn" class="ghost">Profile</button>
+      <button id="signOut" class="ghost">Sign out</button>
+    </div>
+  </header>
+  <form class="auth" id="authForm" hidden>
+    <h2 id="authTitle">Sign in</h2>
+    <p>Your diets are saved to your account and show up on every device you sign in on.</p>
+    <div class="field"><label class="label" for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="email" required></div>
+    <div class="field"><label class="label" for="authPass">Password</label><input id="authPass" type="password" autocomplete="current-password" minlength="6" required></div>
+    <div id="authMsg" class="msg" hidden></div>
+    <button class="primary" type="submit" id="authSubmit">Sign in</button>
+    <p id="authSwitchRow">No account yet? <button type="button" class="linkish" id="authSwitch">Create one</button></p>
+  </form>
+  <main id="main" hidden></main>
+</div>
+
+<script src="config.js"></script>
+<script src="vendor/supabase-2.45.4.js"></script>
+<script>
+(() => {
+  const KEY = "dietlog.v1";
+  const TYPES = { meal: "Meals", snack: "Snacks", drink: "Drinks" };
+  const SINGULAR = { meal: "meal", snack: "snack", drink: "drink" };
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const todayISO = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+  const fmt = n => Math.round(n).toLocaleString();
+
+  // ---- state ----
+  let diets = {};          // id -> diet
+  let currentId = null;
+  let openDays = new Set();
+  let addType = {};        // dayId -> type
+  let editing = null;      // item id being edited
+  let armed = null;        // key of a delete button waiting for confirmation
+  let view = "diets";      // "diets" or "profile"
+  let profile = {};        // weight_kg, target_weight_kg, height_cm
+  let userEmail = "";
+  const cfg = window.DIETLOG_CONFIG || {};
+  const sb = window.supabase && cfg.supabaseUrl && cfg.supabaseAnonKey
+    ? window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey) : null;
+  let userId = null;
+  const timers = {};
+  const failed = new Set();
+
+  // The last selected diet is a per-device convenience; the diets themselves live in Supabase.
+  function saveLocal() { try { localStorage.setItem(KEY + ".current", currentId || ""); } catch (e) {} }
+  function loadCurrent() { try { return localStorage.getItem(KEY + ".current") || null; } catch (e) { return null; } }
+
+  function persist(id) {
+    const diet = diets[id];
+    if (diet) diet.updatedAt = Date.now();
+    saveLocal();
+    setSync("Saving…", true);
+    clearTimeout(timers[id]);
+    timers[id] = setTimeout(() => flush(id), 600);
+  }
+  async function flush(id) {
+    clearTimeout(timers[id]);
+    delete timers[id];
+    if (!sb || !userId) return;
+    const { error } = diets[id]
+      ? await sb.from("diets").upsert({ id, user_id: userId, data: diets[id], updated_at: new Date().toISOString() })
+      : await sb.from("diets").delete().eq("id", id);
+    if (error) { failed.add(id); setSync("Not saved. Check your connection; it retries on your next change.", false); return; }
+    failed.delete(id);
+    if (!Object.keys(timers).length && !failed.size) setSync("Saved to your account", true);
+  }
+  document.addEventListener("visibilitychange", () => { if (document.hidden) Object.keys(timers).forEach(flush); });
+  window.addEventListener("beforeunload", e => { if (Object.keys(timers).length) { Object.keys(timers).forEach(flush); e.preventDefault(); } });
+
+  function setSync(text, cloud) { const s = $("#sync"); s.textContent = text; s.classList.toggle("cloud", !!cloud); }
+
+  async function loadDiets() {
+    setSync("Loading…", true);
+    const { data, error } = await sb.from("diets").select("id, data");
+    if (error) { setSync("Could not load your diets. Reload to try again.", false); return; }
+    diets = {};
+    data.forEach(r => { diets[r.id] = r.data; });
+    const pr = await sb.from("profiles").select("weight_kg, target_weight_kg, height_cm").maybeSingle();
+    profile = pr.data || {};
+    currentId = loadCurrent();
+    setSync("Saved to your account", true);
+    render();
+  }
+
+  // ---- auth ----
+  let signUpMode = false;
+  function showAuth(on) {
+    $("#authForm").hidden = !on;
+    $("#main").hidden = on;
+    $("#picker").hidden = on;
+    if (on) setSync("Not signed in", false);
+  }
+  function setAuthMode(up) {
+    signUpMode = up;
+    $("#authTitle").textContent = up ? "Create your account" : "Sign in";
+    $("#authSubmit").textContent = up ? "Create account" : "Sign in";
+    $("#authSwitchRow").innerHTML = up
+      ? 'Already have an account? <button type="button" class="linkish" id="authSwitch">Sign in</button>'
+      : 'No account yet? <button type="button" class="linkish" id="authSwitch">Create one</button>';
+    $("#authPass").autocomplete = up ? "new-password" : "current-password";
+    $("#authMsg").hidden = true;
+  }
+  function authMsg(text, ok) { const m = $("#authMsg"); m.textContent = text; m.hidden = false; m.classList.toggle("ok", !!ok); }
+  async function onSession(session) {
+    const id = session?.user?.id || null;
+    if (id === userId) return;
+    userId = id;
+    userEmail = session?.user?.email || "";
+    view = "diets";
+    if (!userId) { diets = {}; profile = {}; currentId = null; showAuth(true); return; }
+    showAuth(false);
+    await loadDiets();
+  }
+
+  // ---- helpers ----
+  const cur = () => diets[currentId];
+  const dayTotal = day => day.items.reduce((s, i) => s + (Number(i.kcal) || 0), 0);
+  const typeTotal = (day, t) => day.items.filter(i => i.type === t).reduce((s, i) => s + (Number(i.kcal) || 0), 0);
+  function sortedDays(diet) { return [...diet.days].sort((a, b) => b.date.localeCompare(a.date)); }
+  function newDiet(name) {
+    const id = uid();
+    diets[id] = { name: name || "New diet", target: null, note: "", days: [], createdAt: Date.now(), updatedAt: Date.now() };
+    currentId = id;
+    return id;
+  }
+  function exampleDiet() {
+    const id = newDiet("Example: 1,800 kcal cut");
+    const d = diets[id];
+    d.target = 1800;
+    d.note = "Example data so you can see how it works. Delete this diet when you are ready.\nRules: no sugary drinks, protein at every meal, walk 8k steps.";
+    const t = new Date();
+    const iso = off => { const x = new Date(t); x.setDate(x.getDate() - off); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); };
+    d.days = [
+      { id: uid(), date: iso(0), note: "Felt hungry in the afternoon. Drink more water.", items: [
+        { id: uid(), type: "meal", name: "Oats with banana", desc: "60 g oats, 1 banana, 200 ml milk", kcal: 420 },
+        { id: uid(), type: "meal", name: "Chicken rice bowl", desc: "150 g grilled chicken, 1 cup rice, salad", kcal: 610 },
+        { id: uid(), type: "snack", name: "Greek yogurt", desc: "", kcal: 120 },
+        { id: uid(), type: "drink", name: "Black coffee", desc: "", kcal: 5 },
+        { id: uid(), type: "meal", name: "Lentil soup", desc: "Large bowl with bread", kcal: 480 } ] },
+      { id: uid(), date: iso(1), note: "Went over because of the dessert at dinner.", items: [
+        { id: uid(), type: "meal", name: "Eggs and toast", desc: "2 eggs, 2 slices whole wheat toast", kcal: 390 },
+        { id: uid(), type: "meal", name: "Koshari", desc: "Medium plate", kcal: 750 },
+        { id: uid(), type: "snack", name: "Basbousa", desc: "", kcal: 410 },
+        { id: uid(), type: "drink", name: "Orange juice", desc: "", kcal: 110 },
+        { id: uid(), type: "meal", name: "Tuna salad", desc: "", kcal: 350 } ] }
+    ];
+    openDays.add(d.days[0].id);
+    return id;
+  }
+
+  // ---- render ----
+  function renderPicker() {
+    const sel = $("#dietSelect");
+    const ids = Object.keys(diets).sort((a, b) => (diets[b].createdAt || 0) - (diets[a].createdAt || 0));
+    sel.innerHTML = ids.map(id => `<option value="${id}"${id === currentId ? " selected" : ""}>${esc(diets[id].name || "Untitled diet")}</option>`).join("");
+    sel.hidden = !ids.length;
+    $("label[for=dietSelect]").hidden = !ids.length;
+  }
+
+  function render() {
+    if (currentId && !diets[currentId]) currentId = null;
+    if (!currentId) currentId = Object.keys(diets).sort((a, b) => (diets[b].createdAt || 0) - (diets[a].createdAt || 0))[0] || null;
+    renderPicker();
+    const main = $("#main");
+    $("#profileBtn").setAttribute("aria-pressed", view === "profile");
+    if (view === "profile") { main.innerHTML = renderProfile(); return; }
+    const diet = cur();
+    if (!diet) {
+      main.innerHTML = `<section class="welcome">
+        <span class="label">Start here</span>
+        <h2>Create your first diet</h2>
+        <p>A diet holds your days. Each day holds your meals (name, description and calories), snacks, drinks and a note for the day. The diet itself has its own note for its rules and goals.</p>
+        <div class="btns"><button class="primary" data-act="first-diet">Create a diet</button><button data-act="example">Load an example</button></div>
+      </section>`;
+      return;
+    }
+    const days = sortedDays(diet);
+    const totals = days.map(dayTotal);
+    const sum = totals.reduce((a, b) => a + b, 0);
+    const logged = days.filter(d => d.items.length);
+    const avg = logged.length ? logged.reduce((s, d) => s + dayTotal(d), 0) / logged.length : 0;
+    const target = Number(diet.target) || 0;
+    const onTarget = target ? logged.filter(d => dayTotal(d) <= target).length : null;
+
+    main.innerHTML = `
+    <div style="display:grid;gap:20px">
+      <section class="diet" aria-label="Diet details">
+        <div class="diet-head">
+          <input class="diet-name" id="dietName" value="${esc(diet.name)}" aria-label="Diet name" maxlength="80">
+          <button class="ghost danger ${armed === "diet" ? "armed" : ""}" data-act="del-diet">${armed === "diet" ? "Click again to delete diet" : "Delete diet"}</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><span class="label">Days</span><span class="v">${days.length}</span></div>
+          <div class="stat"><span class="label">Avg per day</span><span class="v">${fmt(avg)} <small>kcal</small></span></div>
+          <div class="stat"><span class="label">Total</span><span class="v">${fmt(sum)} <small>kcal</small></span></div>
+          <div class="stat"><span class="label">Within target</span><span class="v">${onTarget === null ? "–" : `${onTarget}<small>/${logged.length} days</small>`}</span></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label class="label" for="dietTarget">Daily target (kcal)</label>
+            <input id="dietTarget" type="number" inputmode="numeric" min="0" step="10" placeholder="Optional" value="${target || ""}"></div>
+          <div class="field"><label class="label" for="dietNote">Diet note</label>
+            <textarea id="dietNote" placeholder="Rules, goals, what this diet is about">${esc(diet.note)}</textarea></div>
+        </div>
+      </section>
+
+      <section style="display:grid;gap:12px" aria-label="Days">
+        <div class="days-head">
+          <h2>Days</h2>
+          <form class="addday" id="addDayForm">
+            <label class="label" for="newDayDate">Date</label>
+            <input type="date" id="newDayDate" value="${suggestDate(diet)}" required>
+            <button class="primary" type="submit">Add day</button>
+          </form>
+        </div>
+        <div id="dayMsg" class="msg" hidden></div>
+        <div class="days">
+          ${days.length ? days.map(d => renderDay(d, target)).join("") : `<div class="welcome"><p>No days yet. Pick a date above and press Add day.</p></div>`}
+        </div>
+      </section>
+    </div>`;
+  }
+
+  function renderProfile() {
+    const w = Number(profile.weight_kg) || 0, tw = Number(profile.target_weight_kg) || 0, h = Number(profile.height_cm) || 0;
+    const bmi = w && h ? w / ((h / 100) ** 2) : 0;
+    const band = !bmi ? "" : bmi < 18.5 ? "Underweight" : bmi < 25 ? "Healthy range" : bmi < 30 ? "Overweight" : "Obese";
+    const diff = w && tw ? tw - w : null;
+    const toGo = diff === null ? "–" : Math.abs(diff) < 0.05 ? "At target" : `${Math.abs(diff).toFixed(1)}<small> kg to ${diff < 0 ? "lose" : "gain"}</small>`;
+    const tBmi = tw && h ? (tw / ((h / 100) ** 2)).toFixed(1) : "–";
+    return `<section class="diet" aria-label="Profile">
+      <div class="diet-head"><div style="display:grid;gap:4px"><h2 style="font-size:24px">Profile</h2><span style="color:var(--muted);font-size:14px">${esc(userEmail)}</span></div>
+        <button data-act="back">Back to diets</button></div>
+      <div class="stats">
+        <div class="stat"><span class="label">BMI</span><span class="v">${bmi ? bmi.toFixed(1) : "–"}</span></div>
+        <div class="stat"><span class="label">Range</span><span class="v" style="font-size:16px;font-family:var(--font-body);font-weight:700">${band || "–"}</span></div>
+        <div class="stat"><span class="label">To target</span><span class="v">${toGo}</span></div>
+        <div class="stat"><span class="label">BMI at target</span><span class="v">${tBmi}</span></div>
+      </div>
+      <form id="profileForm" style="display:grid;gap:14px">
+        <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+          <div class="field"><label class="label" for="pWeight">Current weight (kg)</label><input id="pWeight" name="weight_kg" type="number" inputmode="decimal" min="20" max="400" step="0.1" value="${w || ""}" placeholder="e.g. 82.5"></div>
+          <div class="field"><label class="label" for="pTarget">Target weight (kg)</label><input id="pTarget" name="target_weight_kg" type="number" inputmode="decimal" min="20" max="400" step="0.1" value="${tw || ""}" placeholder="e.g. 75"></div>
+          <div class="field"><label class="label" for="pHeight">Height (cm)</label><input id="pHeight" name="height_cm" type="number" inputmode="decimal" min="80" max="250" step="0.5" value="${h || ""}" placeholder="e.g. 178"></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="primary" type="submit">Save profile</button><span id="profileMsg" class="note-saved" role="status"></span></div>
+      </form>
+      <p style="margin:0;color:var(--muted);font-size:13px;max-width:65ch">BMI is a rough guide. It doesn't tell muscle from fat, so use it alongside how your clothes fit and how you feel.</p>
+    </section>`;
+  }
+
+  async function saveProfile(f) {
+    const fd = new FormData(f);
+    const num = k => { const v = parseFloat(fd.get(k)); return Number.isFinite(v) && v > 0 ? Math.round(v * 10) / 10 : null; };
+    const next = { weight_kg: num("weight_kg"), target_weight_kg: num("target_weight_kg"), height_cm: num("height_cm") };
+    const msg = $("#profileMsg");
+    msg.textContent = "Saving…";
+    const { error } = await sb.from("profiles").upsert({ user_id: userId, ...next, updated_at: new Date().toISOString() });
+    if (error) { msg.textContent = "Not saved. Check your connection and try again."; return; }
+    profile = next;
+    render();
+    $("#profileMsg").textContent = "Saved";
+  }
+
+  function suggestDate(diet) {
+    const t = todayISO();
+    if (!diet.days.some(d => d.date === t)) return t;
+    const latest = sortedDays(diet)[0].date;
+    const x = new Date(latest + "T12:00:00"); x.setDate(x.getDate() + 1);
+    return x.toISOString().slice(0, 10);
+  }
+
+  function renderDay(day, target) {
+    const total = dayTotal(day);
+    const open = openDays.has(day.id);
+    const dt = new Date(day.date + "T12:00:00");
+    const wk = dt.toLocaleDateString(undefined, { weekday: "long" });
+    const mon = dt.toLocaleDateString(undefined, { month: "short" });
+    const full = dt.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+    const over = target && total > target;
+    const pct = target ? Math.min(100, (total / target) * 100) : 0;
+    const counts = Object.keys(TYPES).map(t => { const n = day.items.filter(i => i.type === t).length; return n ? `${n} ${SINGULAR[t]}${n > 1 ? "s" : ""}` : null; }).filter(Boolean).join(" · ") || "Nothing logged yet";
+    const type = addType[day.id] || "meal";
+    return `<article class="day" data-day="${day.id}">
+      <div class="day-bar" data-act="toggle" role="button" tabindex="0" aria-expanded="${open}">
+        <div class="date-chip"><b>${dt.getDate()}</b><span>${esc(mon)}</span></div>
+        <div class="day-title"><strong>${esc(wk)}, ${esc(full)}</strong>
+          <span style="color:var(--muted);font-size:13px">${counts}</span>
+          ${target ? `<div class="meter ${over ? "over" : ""}"><i style="width:${pct}%"></i></div>` : ""}
+        </div>
+        <div class="day-total"><div class="v ${over ? "over" : ""}">${fmt(total)}${target ? `<span style="color:var(--muted);font-size:13px"> / ${fmt(target)}</span>` : ""}</div><div class="label">kcal</div></div>
+      </div>
+      ${open ? `<div class="day-body">
+        ${Object.keys(TYPES).map(t => renderGroup(day, t)).join("")}
+        <form class="adder t-${type}" data-form="add" data-day="${day.id}">
+          <div class="seg" role="group" aria-label="What are you adding">
+            ${Object.keys(TYPES).map(t => `<button type="button" class="t-${t}" data-act="type" data-type="${t}" aria-pressed="${t === type}">${SINGULAR[t][0].toUpperCase() + SINGULAR[t].slice(1)}</button>`).join("")}
+          </div>
+          <div class="adder-grid">
+            <div class="field"><label class="label" for="n-${day.id}">${SINGULAR[type]} name</label><input id="n-${day.id}" name="name" required maxlength="120" placeholder="${type === "meal" ? "e.g. Grilled chicken with rice" : type === "snack" ? "e.g. Apple" : "e.g. Latte"}"></div>
+            <div class="field"><label class="label" for="k-${day.id}">Calories</label><input id="k-${day.id}" name="kcal" type="number" inputmode="numeric" min="0" step="1" required placeholder="kcal"></div>
+            <button class="primary add-btn" type="submit">Add ${SINGULAR[type]}</button>
+          </div>
+          ${type === "meal" ? `<div class="field"><label class="label" for="d-${day.id}">Description</label><input id="d-${day.id}" name="desc" maxlength="400" placeholder="Ingredients, portion, where you ate"></div>` : ""}
+        </form>
+        <div class="field"><label class="label" for="note-${day.id}">Day note</label>
+          <textarea id="note-${day.id}" data-note="${day.id}" placeholder="How did today go?">${esc(day.note)}</textarea></div>
+        <div class="day-foot"><button class="ghost danger ${armed === "day:" + day.id ? "armed" : ""}" data-act="del-day">${armed === "day:" + day.id ? "Click again to delete day" : "Delete day"}</button></div>
+      </div>` : ""}
+    </article>`;
+  }
+
+  function renderGroup(day, t) {
+    const items = day.items.filter(i => i.type === t);
+    return `<div class="group t-${t}">
+      <div class="group-h"><span class="label"><i class="dot"></i>${TYPES[t]}</span><span class="num" style="font-size:13px;color:var(--muted)">${fmt(typeTotal(day, t))} kcal</span></div>
+      ${items.length ? `<ul class="items">${items.map(i => editing === i.id ? renderEdit(day, i) : `<li class="item t-${t}" data-item="${i.id}">
+          <div><div class="name">${esc(i.name)}</div>${i.desc ? `<div class="desc">${esc(i.desc)}</div>` : ""}</div>
+          <span class="kcal">${fmt(Number(i.kcal) || 0)} kcal</span>
+          <span class="acts"><button class="ghost" data-act="edit" aria-label="Edit ${esc(i.name)}">Edit</button><button class="ghost danger" data-act="del-item" aria-label="Delete ${esc(i.name)}">✕</button></span>
+        </li>`).join("")}</ul>` : `<div class="empty-g">No ${TYPES[t].toLowerCase()} yet</div>`}
+    </div>`;
+  }
+
+  function renderEdit(day, i) {
+    return `<li><form class="edit-form t-${i.type}" data-form="edit" data-day="${day.id}" data-item="${i.id}">
+      <div class="adder-grid">
+        <div class="field"><label class="label" for="en-${i.id}">Name</label><input id="en-${i.id}" name="name" required maxlength="120" value="${esc(i.name)}"></div>
+        <div class="field"><label class="label" for="ek-${i.id}">Calories</label><input id="ek-${i.id}" name="kcal" type="number" min="0" step="1" required value="${Number(i.kcal) || 0}"></div>
+        <div style="display:flex;gap:6px" class="add-btn"><button class="primary" type="submit">Save</button><button type="button" data-act="cancel-edit">Cancel</button></div>
+      </div>
+      ${i.type === "meal" ? `<div class="field"><label class="label" for="ed-${i.id}">Description</label><input id="ed-${i.id}" name="desc" maxlength="400" value="${esc(i.desc)}"></div>` : ""}
+    </form></li>`;
+  }
+
+  // ---- events ----
+  const findDay = id => cur()?.days.find(d => d.id === id);
+
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-act]");
+    if (!b) { if (armed) { armed = null; render(); } return; }
+    const act = b.dataset.act;
+    const dayEl = b.closest("[data-day]");
+    const day = dayEl && findDay(dayEl.dataset.day);
+    if (act !== "del-diet" && act !== "del-day" && armed) armed = null;
+    if (act === "back") { view = "diets"; render(); }
+    else if (act === "first-diet") { newDiet("My diet"); persist(currentId); render(); $("#dietName")?.select(); }
+    else if (act === "example") { const id = exampleDiet(); persist(id); render(); }
+    else if (act === "toggle" && day) { openDays.has(day.id) ? openDays.delete(day.id) : openDays.add(day.id); render(); }
+    else if (act === "type" && day) { addType[day.id] = b.dataset.type; render(); $(`#n-${day.id}`)?.focus(); }
+    else if (act === "edit" && day) { editing = b.closest("[data-item]").dataset.item; render(); }
+    else if (act === "cancel-edit") { editing = null; render(); }
+    else if (act === "del-item" && day) {
+      const id = b.closest("[data-item]").dataset.item;
+      day.items = day.items.filter(i => i.id !== id); persist(currentId); render();
+    }
+    else if (act === "del-day" && day) {
+      const key = "day:" + day.id;
+      if (armed !== key) { armed = key; render(); return; }
+      armed = null; cur().days = cur().days.filter(d => d.id !== day.id); persist(currentId); render();
+    }
+    else if (act === "del-diet") {
+      if (armed !== "diet") { armed = "diet"; render(); return; }
+      armed = null; const id = currentId; delete diets[id]; currentId = null; persist(id); render();
+    }
+  });
+  document.addEventListener("keydown", e => {
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches(".day-bar")) { e.preventDefault(); e.target.click(); }
+  });
+
+  document.addEventListener("submit", e => {
+    e.preventDefault();
+    const f = e.target;
+    if (f.id === "profileForm") { saveProfile(f); return; }
+    const diet = cur();
+    if (!diet) return;
+    if (f.id === "addDayForm") {
+      const date = $("#newDayDate").value;
+      const msg = $("#dayMsg");
+      if (!date) return;
+      if (diet.days.some(d => d.date === date)) { msg.textContent = "That date is already in this diet. Open it below to add to it."; msg.hidden = false; return; }
+      const day = { id: uid(), date, note: "", items: [] };
+      diet.days.push(day); openDays.add(day.id); persist(currentId); render();
+      $(`#n-${day.id}`)?.focus();
+      return;
+    }
+    const day = findDay(f.dataset.day);
+    if (!day) return;
+    const fd = new FormData(f);
+    const name = String(fd.get("name") || "").trim();
+    const kcal = Math.max(0, Math.round(Number(fd.get("kcal")) || 0));
+    const desc = String(fd.get("desc") || "").trim();
+    if (!name) return;
+    if (f.dataset.form === "add") {
+      const type = addType[day.id] || "meal";
+      day.items.push({ id: uid(), type, name, desc: type === "meal" ? desc : "", kcal });
+      persist(currentId); render(); $(`#n-${day.id}`)?.focus();
+    } else if (f.dataset.form === "edit") {
+      const it = day.items.find(i => i.id === f.dataset.item);
+      if (it) { it.name = name; it.kcal = kcal; if (it.type === "meal") it.desc = desc; }
+      editing = null; persist(currentId); render();
+    }
+  });
+
+  // text fields save as you type, without re-rendering under the cursor
+  document.addEventListener("input", e => {
+    const t = e.target, diet = cur();
+    if (!diet) return;
+    if (t.id === "dietName") { diet.name = t.value; persist(currentId); renderPicker(); }
+    else if (t.id === "dietNote") { diet.note = t.value; persist(currentId); }
+    else if (t.dataset.note) { const d = findDay(t.dataset.note); if (d) { d.note = t.value; persist(currentId); } }
+  });
+  document.addEventListener("change", e => {
+    const t = e.target, diet = cur();
+    if (t.id === "dietSelect") { view = "diets"; currentId = t.value; armed = null; editing = null; saveLocal(); render(); }
+    else if (t.id === "dietTarget" && diet) { const v = Math.round(Number(t.value)); diet.target = v > 0 ? v : null; persist(currentId); render(); }
+    else if (t.id === "dietName" && diet && !t.value.trim()) { diet.name = "Untitled diet"; persist(currentId); render(); }
+  });
+  $("#profileBtn").addEventListener("click", () => { view = view === "profile" ? "diets" : "profile"; armed = null; render(); });
+  $("#newDiet").addEventListener("click", () => { view = "diets"; newDiet("New diet"); persist(currentId); render(); const n = $("#dietName"); n?.focus(); n?.select(); });
+  $("#signOut").addEventListener("click", async () => { await Promise.all(Object.keys(timers).map(flush)); await sb.auth.signOut(); });
+  $("#authForm").addEventListener("click", e => { if (e.target.id === "authSwitch") setAuthMode(!signUpMode); });
+  $("#authForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const email = $("#authEmail").value.trim(), password = $("#authPass").value;
+    $("#authSubmit").disabled = true;
+    try {
+      if (signUpMode) {
+        const { data, error } = await sb.auth.signUp({ email, password });
+        if (error) return authMsg(error.message);
+        if (!data.session) { setAuthMode(false); authMsg("Check your email and click the confirmation link, then sign in here.", true); }
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) authMsg(error.message === "Invalid login credentials" ? "That email and password don't match an account." : error.message);
+      }
+    } finally { $("#authSubmit").disabled = false; }
+  });
+
+  if (!sb) {
+    $("#main").hidden = false;
+    $("#main").innerHTML = `<section class="welcome"><h2>Setup needed</h2><p>Add your Supabase project URL and anon key to config.js, then reload.</p></section>`;
+    setSync("Not connected", false);
+    return;
+  }
+  sb.auth.onAuthStateChange((_event, session) => { setTimeout(() => onSession(session), 0); });
+  sb.auth.getSession().then(({ data }) => { if (!data.session) showAuth(true); });
+})();
+</script>
+</body>
+</html>
